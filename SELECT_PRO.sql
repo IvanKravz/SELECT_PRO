@@ -2,18 +2,17 @@
 
 -- Количество исполнителей в каждом жанре.
 
-SELECT name, COUNT(artist_id) artist_q FROM artists_music_genres amg  
+SELECT name_ganre, COUNT(artist_id) artist_q FROM artists_music_genres amg  
 JOIN music_genres mg ON amg.genre_id = mg.genre_id
-GROUP BY mg.name
+GROUP BY mg.name_ganre
 ORDER BY artist_q DESC;
 
 -- Количество треков, вошедших в альбомы 2019–2020 годов.
 
-SELECT year_release, COUNT(tracks_id) track_q FROM collection_tracks ct  
+SELECT COUNT(tracks_id) track_q FROM collection_tracks ct  
 JOIN music_collection mc ON mc.collection_id = ct.collection_id
 WHERE year_release >= 2019 and year_release <= 2020 
-GROUP BY mc.year_release
-ORDER BY track_q DESC;
+ORDER BY track_q;
 
 -- Средняя продолжительность треков по каждому альбому.
 
@@ -25,23 +24,30 @@ ORDER BY dur DESC;
 -- Все исполнители, которые не выпустили альбомы в 2020 году.
 
 SELECT name_artist FROM artists a2  
-JOIN albums a ON a2.artist_id = a.albums_id 
-WHERE year_release != 2020
-GROUP BY a2.name_artist;
-
+WHERE name_artist NOT IN (
+	SELECT name_artist FROM artists a2
+	JOIN artists_albums aa2 ON a2.artist_id = aa2.artist_id
+	JOIN albums a ON a.albums_id = aa2.albums_id 
+	WHERE a.year_release = 2020);
+	
 -- Названия сборников, в которых присутствует конкретный исполнитель (выберите его сами).
 
-SELECT name_collection FROM artists a 
-JOIN music_collection mc ON mc.collection_id = a.artist_id 
-WHERE name_artist = 'Кино'
-GROUP BY mc.name_collection;
+SELECT DISTINCT name_collection FROM music_collection mc  
+JOIN collection_tracks ct ON mc.collection_id = ct.collection_id
+JOIN tracks t ON ct.tracks_id = t.tracks_id
+JOIN albums a ON t.albums_id = a.albums_id
+JOIN artists_albums aa ON a.albums_id = aa.albums_id
+JOIN artists a2 ON aa.artist_id = a2.artist_id
+WHERE name_artist = 'Кино';
 
 -- Названия альбомов, в которых присутствуют исполнители более чем одного жанра.
 
-SELECT name_albums, count(name_ganre) FROM albums a
-JOIN music_genres amg ON a.albums_id = amg.genre_id 
-GROUP BY a.name_albums
-HAVING COUNT(name_ganre) > 1;
+SELECT name_albums FROM albums a
+JOIN artists_albums aa ON a.albums_id = aa.albums_id 
+JOIN artists a2 ON aa.artist_id = a2.artist_id 
+JOIN artists_music_genres amg ON a2.artist_id = amg.artist_id
+GROUP BY a.name_albums, a2.artist_id
+HAVING COUNT(amg.genre_id) > 1;
 
 -- Наименования треков, которые не входят в сборники.
 
